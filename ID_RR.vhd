@@ -1,12 +1,36 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
+
 entity ID_RR is
- 	port(decoder_input	: in std_logic_vector(35 downto 0);
- 	pc,pc_inc : in std_logic_vector(15 downto 0);
- 	clk,reset,enable,mux1,mux2 : in std_logic;
- 	ID_RR_output : out std_logic_vector(63 downto 0));
+ 	port(decoder_input	: in std_logic_vector(37 downto 0);
+ 	pc_ID,pcplus1_ID : in std_logic_vector(15 downto 0);
+ 	clk,reset,enable,mux1_en,mux2_en : in std_logic;
+ 	wr_en_RR, wr_en_EX, wr_en_MEM, wr_en_WB, pe_zero : out std_logic;
+ 	opcode_RR,optype_RR : out std_logic_vector(1 downto 0);
+ 	rf_a1_RR, rf_a2_RR, rf_a3_RR, rf_a3_EX, rf_a3_MEM, rf_a3_WB, pe_out_RR : out std_logic_vector(2 downto 0);
+ 	temp_RR, pc_RR, pcplus1_RR : out std_logic_vector(15 downto 0));
 end entity;
+
+--INPUT
+--wr_en_RR 	1 bit
+--wr_en_EX	1 bit
+--wr_en_MEM	1 bit
+--wr_en_WB	1 bit
+--opcode_RR	2 bit
+--rf_a1_RR	3 bit
+--rf_a2_RR 	3 bit
+--rf_a3_RR	3 bit
+--rf_a3_EX	3 bit
+--rf_a3_MEM	3 bit
+--rf_a3_WB	3 bit
+--pe_out_RR	3 bit
+--pe_zero		1 bit
+--temp_RR		16 bit
+--pc_RR		16 bit
+--pcplus1_RR	16 bit
+
+
 
 architecture bhv of ID_RR is
 
@@ -38,35 +62,70 @@ end component;
  
 signal pe_out,id_a3_1,id_a3_2,id_a3_3,id_a3_4 : std_logic_vector(2 downto 0):="000";
 signal pe_reg_out,pe_value,pe_input : std_logic_vector(7 downto 0):="00000000";
-signal pe_zero : std_logic := '0';
+--signal pe_zero : std_logic := '0';
+
+signal wr_en_1, wr_en_2, wr_en_3, wr_en_4 : std_logic_vector(0 downto 0) := "0";
+
 
 begin
 
+
+optype_RR <= decoder_input(37 downto 36);
+
 wr_enblock: dregister generic map(nbits => 1)
 					  port map( din => decoder_input(0 downto 0) ,
-					  			dout => ID_RR_output(0 downto 0) ,
+					  			dout => wr_en_1 ,
 					  			enable => enable ,
 					  			clk => clk ,
 					  			reset => reset );
 
+wr_en_RR <= wr_en_1(0);
+
+wr_en_A_block: dregister generic map(nbits => 1)
+					  port map( din => wr_en_1 ,
+					  			dout => wr_en_2 ,
+					  			enable => enable ,
+					  			clk => clk ,
+					  			reset => reset );
+
+wr_en_EX <= wr_en_2(0);
+
+wr_en_B_block: dregister generic map(nbits => 1)
+					  port map( din => wr_en_2 ,
+					  			dout => wr_en_3 ,
+					  			enable => enable ,
+					  			clk => clk ,
+					  			reset => reset );
+
+wr_en_MEM <= wr_en_3(0);
+
+wr_en_C_ock: dregister generic map(nbits => 1)
+					  port map( din => wr_en_3 ,
+					  			dout => wr_en_4 ,
+					  			enable => enable ,
+					  			clk => clk ,
+					  			reset => reset );
+
+wr_en_WB <= wr_en_4(0);
+
 
 opcodeblock: dregister generic map(nbits => 2)
 					  port map( din =>decoder_input(2 downto 1) ,
-					  			dout =>ID_RR_output(2 downto 1) ,
+					  			dout =>opcode_RR ,
 					  			enable => enable ,
 					  			clk => clk ,
 					  			reset => reset );
 
 a1block: dregister generic map(nbits => 3)
 					  port map( din => decoder_input(5 downto 3) ,
-					  			dout => ID_RR_output(5 downto 3) ,
+					  			dout => rf_a1_RR ,
 					  			enable => enable ,
 					  			clk => clk ,
 					  			reset => reset  );
 
 a2block: dregister generic map(nbits => 3)
 					  port map( din => decoder_input(8 downto 6) ,
-					  			dout => ID_RR_output(8 downto 6) ,
+					  			dout => rf_a2_RR ,
 					  			enable => enable ,
 					  			clk => clk ,
 					  			reset => reset  );
@@ -74,7 +133,7 @@ a2block: dregister generic map(nbits => 3)
 mux_a3block: mux_2in generic map( mbits => 3)
 					  port map( din0 => decoder_input(11 downto 9) ,
 					  			din1 => pe_out ,
-					  			enable =>mux1 ,
+					  			enable =>mux1_en ,
 					  			dout => id_a3_1 );
 
 
@@ -85,12 +144,16 @@ a3block: dregister generic map(nbits => 3)
 					  			clk => clk ,
 					  			reset => reset );
 
+rf_a3_RR <= id_a3_2 ;
+
 a3A_block: dregister generic map(nbits => 3)
 					  port map( din =>id_a3_2 ,
 					  			dout =>id_a3_3 ,
 					  			enable => enable ,
 					  			clk => clk ,
 					  			reset => reset );
+
+rf_a3_EX <= id_a3_3 ;
 
 a3B_block: dregister generic map(nbits => 3)
 					  port map( din =>id_a3_3 ,
@@ -99,17 +162,19 @@ a3B_block: dregister generic map(nbits => 3)
 					  			clk => clk ,
 					  			reset => reset );
 
+rf_a3_MEM <= id_a3_4 ;
+
 a3C_block: dregister generic map(nbits => 3)
 					  port map( din =>id_a3_4 ,
-					  			dout =>ID_RR_output(11 downto 9) ,
+					  			dout =>rf_a3_WB ,
 					  			enable => enable ,
 					  			clk => clk ,
 					  			reset => reset );
 
 mux_pe: mux_2in generic map( mbits => 8)
 					  port map( din0 => decoder_input(19 downto 12) ,
-					  			din1 => pe_input ,
-					  			enable =>mux2 ,
+					  			din1 => pe_reg_out ,
+					  			enable =>mux2_en ,
 					  			dout => pe_input );
 
 
@@ -118,9 +183,10 @@ pe_block: pe_lmsm port map( input => pe_input,
 							S1 => pe_out(1), 
 							S2 => pe_out(2),
 							Z => pe_zero, 
-							output => pe_reg_out ,
+							output => pe_value ,
 							reset => reset );
 
+pe_out_RR <= pe_out;
 
 pe_regblock: dregister generic map(nbits => 8)
 					  port map( din => pe_value ,
@@ -132,22 +198,22 @@ pe_regblock: dregister generic map(nbits => 8)
 
 
 tempblock: dregister generic map(nbits => 16)
-					  port map( din => decoder_input(35 downto 16) ,
-					  			dout => ID_RR_output(30 downto 15) ,
+					  port map( din => decoder_input(35 downto 20) ,
+					  			dout => temp_RR ,
 					  			enable => enable ,
 					  			clk => clk ,
 					  			reset => reset );
 
 pc_decblock: dregister generic map(nbits => 16)
-					  port map( din => pc ,
-					  			dout => ID_RR_output(46 downto 31),
+					  port map( din => pc_ID ,
+					  			dout => pc_RR,
 					  			enable => enable ,
 					  			clk => clk ,
 					  			reset => reset );
 
 pc_1_deccblock: dregister generic map(nbits => 16)
-					  port map( din => pc_inc ,
-					  			dout => ID_RR_output(62 downto 46) ,
+					  port map( din => pcplus1_ID ,
+					  			dout => pcplus1_RR ,
 					  			enable => enable ,
 					  			clk => clk ,
 					  			reset => reset );

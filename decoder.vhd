@@ -4,7 +4,7 @@ use ieee.std_logic_1164.all;
 entity decoder is
  	port(IR	       : in std_logic_vector(15 downto 0);
  	cflag,zflag	   : in std_logic;
- 	decoder_output : out std_logic_vector(35 downto 0));
+ 	decoder_output : out std_logic_vector(37 downto 0));
 -- 	dec_temp			 : out std_logic_vector(15 downto 0);
 --	dec_a1,dec_a2,dec_a3 : out std_logic_vector(2 downto 0);
 --	nineto8 			 : out std_logic_vector(7 downto 0);
@@ -131,6 +131,7 @@ decoder_output(8 downto 6) <= dec_a2;
 decoder_output(11 downto 9) <= dec_a3;
 decoder_output(19 downto 12) <= nineto8;
 decoder_output(20 downto 35) <= dec_temp;
+decoder_output(37 downto 36) <= cz;
 
 
 end bhv;

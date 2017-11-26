@@ -5,7 +5,7 @@ use IEEE.STD_LOGIC_1164.all;
 
  entity mux_3in is
   generic (
-    mbits : integer := 8 );	-- no. of bits of input
+    mbits : integer );	-- no. of bits of input
 
   port (
     d0,d1,d2 : in std_logic_vector(mbits-1 downto 0);

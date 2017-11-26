@@ -2,13 +2,14 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 entity decoder is
- 	port(IR	     		 : in std_logic_vector(15 downto 0);
- 	cflag,zflag			 : in std_logic;
- 	dec_temp			 : out std_logic_vector(15 downto 0);
-	dec_a1,dec_a2,dec_a3 : out std_logic_vector(2 downto 0);
-	nineto8 			 : out std_logic_vector(7 downto 0);
-	dec_opcode 			 :out std_logic_vector(1 downto 0);
-	wr_en 				 : out std_logic);
+ 	port(IR	       : in std_logic_vector(15 downto 0);
+ 	cflag,zflag	   : in std_logic;
+ 	decoder_output : out std_logic_vector(35 downto 0));
+-- 	dec_temp			 : out std_logic_vector(15 downto 0);
+--	dec_a1,dec_a2,dec_a3 : out std_logic_vector(2 downto 0);
+--	nineto8 			 : out std_logic_vector(7 downto 0);
+--	dec_opcode 			 : out std_logic_vector(1 downto 0);
+--	wr_en 				 : out std_logic);
 end entity;
 
 architecture bhv of decoder is
@@ -19,6 +20,12 @@ signal imm6 : std_logic_vector(5 downto 0):="000000";
 signal imm9 : std_logic_vector(8 downto 0):="000000000";
 signal cz,enable_temp : std_logic_vector(1 downto 0):="00";
 signal se9_temp,se6_temp,sl6_temp : std_logic_vector(15 downto 0):="0000000000000000";
+
+signal	dec_temp			 : std_logic_vector(15 downto 0) := (others => '0');
+signal	dec_a1,dec_a2,dec_a3 : std_logic_vector(2 downto 0) := "000";
+signal	nineto8 			 : std_logic_vector(7 downto 0) := "00000000";
+signal	dec_opcode 			 : std_logic_vector(1 downto 0) := "00";
+signal	wr_en 				 : std_logic := '0';
 
 component Nine_To_Eight is
 port(A: in std_logic_vector(8 downto 0);
@@ -114,6 +121,17 @@ se6block: se6 port map(A => imm6, Z => se6_temp);
 
 mux_3inblock: mux_3in generic map(mbits => 16)
 			port map (d0 =>se6_temp, d1 => se9_temp, d2 => sl6_temp, enable => enable_temp	, dout => dec_temp);
+
+
+
+decoder_output(0) <= wr_en ;
+decoder_output(2 downto 1) <= dec_opcode;
+decoder_output(5 downto 3) <= dec_a1;
+decoder_output(8 downto 6) <= dec_a2;
+decoder_output(11 downto 9) <= dec_a3;
+decoder_output(19 downto 12) <= nineto8;
+decoder_output(20 downto 35) <= dec_temp;
+
 
 end bhv;
 

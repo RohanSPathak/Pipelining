@@ -5,8 +5,10 @@ use ieee.std_logic_1164.all;
 entity MEM_WB is
  	port(memory_MEM, pc_MEM : in std_logic_vector(15 downto 0);
  	clk,reset,enable : in std_logic;
- 	carry_MEM : in std_logic;
- 	carry_WB : out std_logic;
+ 	carry_MEM ,zero_en_MEM : in std_logic;
+  main_opcode_MEM : in std_logic_vector(3 downto 0);
+  main_opcode_WB : out std_logic_vector(3 downto 0);
+ 	carry_WB, zero_en_WB : out std_logic;
  	memory_WB, pc_WB : out std_logic_vector(15 downto 0));
 end entity;
 
@@ -22,6 +24,9 @@ component dregister is
     clk,reset : in  std_logic);
 end component;
 signal  carry_temp_MEM,carry_temp_WB : std_logic_vector(0 downto 0):= "0";
+
+signal  zero_en_inp_temp, zero_en_out_temp : std_logic_vector(0 downto 0) := "0";
+
 
 begin
 
@@ -56,6 +61,26 @@ pc_block: dregister generic map(nbits => 16)
 
 
 
+
+main_opcode_block: dregister generic map(nbits => 4)
+            port map( din =>main_opcode_MEM ,
+                  dout =>main_opcode_WB ,
+                  enable => enable ,
+                  clk => clk ,
+                  reset => reset );
+
+
+
+zero_en_inp_temp(0) <= zero_en_MEM ;
+
+zero_en_block: dregister generic map(nbits => 1)
+            port map( din => zero_en_inp_temp ,
+                  dout => zero_en_out_temp ,
+                  enable => enable ,
+                  clk => clk ,
+                  reset => reset );
+
+zero_en_WB <= zero_en_out_temp(0);
 
 
 end bhv;

@@ -3,8 +3,7 @@ use ieee.std_logic_1164.all;
 
 entity decoder is
  	port(IR	       : in std_logic_vector(15 downto 0);
- 	cflag,zflag	   : in std_logic;
- 	decoder_output : out std_logic_vector(37 downto 0));
+ 	decoder_output : out std_logic_vector(44 downto 0));
 -- 	dec_temp			 : out std_logic_vector(15 downto 0);
 --	dec_a1,dec_a2,dec_a3 : out std_logic_vector(2 downto 0);
 --	nineto8 			 : out std_logic_vector(7 downto 0);
@@ -26,6 +25,8 @@ signal	dec_a1,dec_a2,dec_a3 : std_logic_vector(2 downto 0) := "000";
 signal	nineto8 			 : std_logic_vector(7 downto 0) := "00000000";
 signal	dec_opcode 			 : std_logic_vector(1 downto 0) := "00";
 signal	wr_en 				 : std_logic := '0';
+
+signal  zero_en, carry_en, mem_wr_en  : std_logic_vector(0 downto 0) := "0";
 
 component Nine_To_Eight is
 port(A: in std_logic_vector(8 downto 0);
@@ -63,7 +64,7 @@ begin
 process (IR) is
 begin
   
-opcode <= IR(15 downto 12);
+--opcode <= IR(15 downto 12);
 ra <= IR(11 downto 9);
 rb <= IR(8 downto 6);
 rc <= IR(5 downto 3);
@@ -81,32 +82,52 @@ dec_a3 <= rc;
 
 --pe_map1	: Nine_To_Eight port map(A=> imm9, Z=> nineto8);
 
-if (opcode = "0010") then 
+if (IR(15 downto 12) = "0010") then 
 		dec_opcode <= "10"; 
 else 
 		dec_opcode <= "00"; 
 end if ;
 
 
-if (opcode = "0101" or opcode = "0111" or opcode = "1100") then 
+if (IR(15 downto 12) = "0101" or IR(15 downto 12) = "0111" or IR(15 downto 12) = "1100") then 
 	wr_en <= '0';
-else 
-		if (opcode(3 downto 1) = "000" and cz(1) = '1' and cflag = '0' ) then
-			wr_en <= '0';
-		elsif (opcode(3 downto 1) = "000" and cz(0) = '1' and zflag = '0') then
-			wr_en <= '0';
-		else 
-			wr_en <= '1'; 
-	  	end if ; 
+else  
+	wr_en <= '1'; 
 end if ;
 
-if (opcode = "1000") then --For JAL 
+if (IR(15 downto 12) = "1000") then --For JAL 
 	enable_temp <= "01";    --We want output as SE9
-elsif (opcode = "0011") then --For LHI
+elsif (IR(15 downto 12) = "0011") then --For LHI
 	enable_temp <= "10";    --We want output as SL6
 else 
 	enable_temp <= "00";
 end if ;
+
+
+
+-- Carry enable is 1 for ADD, ADC, ADZ, ADI i.e 0000 and 0001
+-- Zero enable is 1 for ADD, ADC, ADZ, ADI, NDU, NDC, NDZ, LW i.e 0000, 0001, 0010 and 0100
+if (IR(15 downto 12) = "0000" or IR(15 downto 12) = "0001") then
+	carry_en(0) <= '1';
+else 
+	carry_en(0) <= '0';
+end if ;
+
+if (IR(15 downto 12) = "0000" or IR(15 downto 12) = "0001" or IR(15 downto 12) ="0010" or IR(15 downto 12) = "0100") then
+	zero_en(0) <= '1';
+else 
+	zero_en(0) <= '0';
+end if ;
+
+-- mem_wr_en is 1 for SM and SW i.e 0101 and 0111
+if (IR(15 downto 12) = "0101" or IR(15 downto 12) = "0111") then
+	mem_wr_en(0) <= '1';
+else 
+	mem_wr_en(0) <= '0';
+end if ;
+
+
+
 
 end process;
 
@@ -130,9 +151,13 @@ decoder_output(5 downto 3) <= dec_a1;
 decoder_output(8 downto 6) <= dec_a2;
 decoder_output(11 downto 9) <= dec_a3;
 decoder_output(19 downto 12) <= nineto8;
-decoder_output(20 downto 35) <= dec_temp;
+decoder_output(35 downto 20) <= dec_temp;
 decoder_output(37 downto 36) <= cz;
+decoder_output(41 downto 38) <= IR(15 downto 12);
 
-
+decoder_output(42) <= carry_en(0) ;
+decoder_output(43) <= zero_en(0) ;
+decoder_output(44) <= mem_wr_en(0) ;
+	
 end bhv;
 
